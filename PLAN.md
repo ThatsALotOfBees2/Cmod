@@ -42,6 +42,40 @@ Unity base game (C#)
 4. **Reload** button, or optional polling of the latest commit, for live updates. Lua reloads in place, and asset changes respawn the affected entities.
 5. Players who join late get the host's cached mod set before they spawn.
 
+### Live loading and host permissions
+- The host gives each player a permission level: **None** (just plays), **Load** (can load mods live), or **Admin** (can also unload or kick mods and change permissions). Players can request Load, and the host gets a popup to approve.
+- A player with permission runs `require(...)` (see below) from the console or the Mods menu. The host fetches the mod, and every player loads it **without a restart**.
+- Unloading a mod calls its `OnUnload`, removes its entities and hooks, and frees its assets.
+
+### `require()`: Roblox-style mod IDs
+Roblox's `require(assetId)` needs a central asset server. We use GitHub paths instead, so no server is needed:
+```lua
+require("jake/cmod-stuff/railgun")        -- latest on default branch
+require("jake/cmod-stuff/railgun@v1.2")   -- pinned tag/commit (reproducible)
+local util = require("sam/libs/mathx")    -- mods can depend on other mods' code
+```
+- An ID has the form `owner/repo/folder[@ref]` and resolves to that folder in the GitHub repo. Any dependencies listed in a mod's `mod.json` are loaded recursively.
+- Optional short aliases (`require("railgun")`) can come from a `cmod.json` index file the host adds by URL.
+- Each ID is turned into a commit SHA. The SHA is the cache key, so a mod pinned to a SHA never downloads again.
+
+### Compression and fast downloads
+Mods are packed into a **`.cpak`** bundle when they're fetched:
+
+| Content | Treatment |
+|---|---|
+| Models (.glb) | meshopt compression and automatic LODs (gltfpack). Usually 5–10× smaller |
+| Textures | Converted to KTX2/Basis Universal, which stays compressed on the GPU, and capped at a maximum resolution the host sets |
+| Sounds | Ogg Vorbis, mono for 3D sounds |
+| Lua / JSON | zstd |
+| Whole bundle | Split into content-addressed chunks (hash → chunk) |
+
+- **Process once, share the result:** only the host (or the player loading the mod) downloads from GitHub and processes the files. Peers get the finished `.cpak` chunks.
+- **Shared chunks:** peers download from the host and from each other, swarm-style, so the host's upload speed isn't the bottleneck.
+- **Persistent local cache** keyed by hash. A mod you've loaded before appears instantly, and an update only downloads the chunks that changed.
+- **Code first, assets as they stream in:** the Lua runs straight away using a placeholder model or low LOD, and full assets swap in once they arrive. Large models load the low LOD first.
+- **Limits the host sets:** maximum mod size, maximum texture size and maximum triangle count, with a warning before something large is loaded.
+- The template repo can include a GitHub Action that builds the `.cpak` in advance, so loading is even faster.
+
 Trust model: friends only. Mods have full access to the API, with no hostile-code sandbox. We still catch Lua errors and limit how long a script can run, so a buggy mod can't freeze the game.
 
 ### Mod layout
@@ -68,9 +102,9 @@ The thing friends fork or "use as template":
 2. **M1 Net:** FishNet + Steam P2P, 2+ players see the same physics
 3. **M2 Lua:** MoonSharp runtime, ENT and hook API, local `Mods/` folder with hot reload
 4. **M3 Weapons:** SWEP API, hitscan and projectiles, 3 built-in example guns
-5. **M4 GitHub sync:** add a repo by URL, host-to-client file transfer, reload
+5. **M4 Live mods:** host permissions, `require()` IDs, GitHub fetch, live load and unload
 6. **M5 AI kit:** template repo, CLAUDE.md, API.md, examples, new-weapon skill
-7. **M6 Assets:** runtime .glb, sound and texture loading inside mods
+7. **M6 Assets + .cpak:** runtime glb/KTX2/ogg, compression pipeline, chunk cache, P2P chunk sharing, streaming LODs
 
 ## Open questions
 - Will we buy our own Steam App ID ($100), or stay on 480 during development?
