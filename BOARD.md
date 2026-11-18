@@ -37,7 +37,7 @@ only touch the files the card owns, and update **Status** when they finish.
 ## Cards
 
 ### C-UI: Win98 widget kit, window manager, taskbar
-**Status:** todo
+**Status:** doing
 **Owns:** `UI/Win98.cs`, `UI/WindowManager.cs`, `UI/Taskbar.cs`, `UI/MessageBox.cs`, `UI/UiModule.cs`
 - Implement every `Win98` partial (UI/Contracts.cs). Use procedural Texture2D, 9-slice GUIStyles (`border`), point filtering,
   and the bevels pixel-exact like Win98 (outer: white/black, inner: light/dark gray). Pressed buttons invert. The checkbox check mark
@@ -59,7 +59,7 @@ only touch the files the card owns, and update **Status** when they finish.
 - Keep everything allocation-light (cache GUIContent and styles). Must look right at ui_scale 1 and 2.
 
 ### C-PLAYER: player controller, camera, HUD
-**Status:** todo
+**Status:** doing
 **Owns:** `Player/CmodPlayer.cs`, `Player/Hud.cs`, `Player/PlayerModule.cs`
 - Implement the `CmodPlayer` partials. Use a CharacterController (height 1.8, radius 0.35) with the camera at 1.62 (0.9 when crouched).
   Walk 5, sprint 9, crouch 2.5 m/s, jump 5.5 m/s, gravity from `Physics.gravity`, good air control, step offset 0.4.
@@ -79,7 +79,7 @@ only touch the files the card owns, and update **Status** when they finish.
   highlighted, fading after 1.5s); a "NOCLIP" label; call `ActiveWeapon.DrawHUD()`. Keep the HUD above the taskbar.
 
 ### C-WEAPONS: physgun, toolgun, tool modes, pistol, wrench
-**Status:** todo
+**Status:** doing
 **Owns:** `Weapons/*.cs` (except Contracts.cs), `Tools/*.cs`, `Weapons/WeaponsModule.cs`
 - Physgun: holding LMB grabs a CmodEntity with a Body (if `Hooks.PhysgunPickup` allows it). Keep the grab offset; move it with velocity
   steering in FixedThink (no teleporting) and damp its angular velocity. The scroll wheel changes the distance (`UsesScrollWheel`).
@@ -100,7 +100,7 @@ only touch the files the card owns, and update **Status** when they finish.
 - `Weapons_Register()`: register every weapon and tool.
 
 ### C-WORLD: entities, map, default props
-**Status:** todo
+**Status:** doing
 **Owns:** `Entities/EntityManager.cs`, `Game/WorldBuilder.cs`, `Game/DefaultProps.cs`, `Game/WorldModule.cs`
 - Implement the `EntityManager` partials (id counter, live list, `CanSpawnProp`/`EntitySpawned`/`EntityRemoved` hooks, undo, crosshair spawn
   using `CmodPlayer.Local.TraceAim`, collider bounds to lift the prop above the surface). Apply the material preset via `PhysicsCompat.ApplyMaterial`.
@@ -113,7 +113,7 @@ only touch the files the card owns, and update **Status** when they finish.
   and one Rigidbody on the root). Realistic masses.
 
 ### C-APPS: console, spawn menu, options, about, help, base commands, keybinds
-**Status:** todo
+**Status:** doing
 **Owns:** `UI/Apps/*.cs`, `Game/BaseCommands.cs`, `Game/Keybinds.cs`
 - Console window: log lines colored by level in a sunken white scroll area (auto-scroll unless scrolled up), an input field + "Submit" button,
   ↑/↓ history, Tab autocomplete (`ConCommands.Complete`). \` toggles it.
@@ -128,7 +128,7 @@ only touch the files the card owns, and update **Status** when they finish.
 - BaseCommands: help, echo, clear, noclip, god, kill, respawn, give, spawn, undo (Z), cleanup, `sv_gravity` (sets Physics.gravity.y, default -15), `host_timescale`, `name`, `cl_showfps`, `spawnmenu_toggle`, `volume`. Keybinds.cs is a MonoBehaviour on the root for Q/\`/Z/F1.
 
 ### C-GITHUB: auto-update from GitHub releases, debug logs to GitHub, CI
-**Status:** todo — *requested by user*
+**Status:** doing — *requested by user*
 **Owns:** `Services/*.cs`, `UI/Apps/GitHubSettingsWindow.cs`, `UI/Apps/UpdateWindow.cs`, `.github/workflows/*.yml`, `docs/GITHUB.md`
 - `GitHubClient`: UnityWebRequest coroutine helpers (GET/POST JSON, download with progress). Headers: `User-Agent: Cmod-Game`,
   `Accept: application/vnd.github+json`, `Authorization: Bearer <token>` when a token is set. Owner/repo come from `CmodGame.RepoOwner/RepoName`.
@@ -155,7 +155,7 @@ only touch the files the card owns, and update **Status** when they finish.
 - `Services_Init` (log file + uploader; it runs before the UI exists, so register windows and start menu items in `Updater_Init`).
 
 ### C-EDITOR: editor setup menu and README
-**Status:** todo
+**Status:** doing
 **Owns:** `Assets/Cmod/Editor/*.cs`, `README.md`
 - Menu `Cmod/Setup Project`: create and save `Assets/Cmod/Scenes/Main.unity` (empty scene), add it to Build Settings, set the
   product name "Cmod", company, and Active Input Handling to Old or Both (via SerializedObject on ProjectSettings `activeInputHandler`),
