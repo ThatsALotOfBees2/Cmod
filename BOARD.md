@@ -190,6 +190,27 @@ only touch the files the card owns, and update **Status** when they finish.
   `Weapons/_OnHold/Physgun.cs.txt` so it doesn't compile but isn't lost. Remove its keybinds and HUD references, and drop the physgun bullets from C-SOUND.
 - Without the physgun, players can still spawn props (spawn menu), weld, rope and remove them (toolgun), and push them by walking into them.
 
+### C-MENU: main menu and P2P server list
+**Status:** todo (queued after the current build) — *requested by user*
+**Owns:** `UI/Menu/*.cs`, `Net/LobbyService.cs`, `Net/ILobbyProvider.cs`; changes the boot flow in `Game/CmodGame.cs` (lead approves the contract change)
+- **Boot flow:** the game starts at the main menu, not in the world. `CmodGame` gets states `MainMenu` → `Loading` → `InGame`.
+  The world, player and gameplay windows are built only when entering a game. "Disconnect / Main Menu" in the Start menu tears
+  them down (cleanup entities, destroy the player and world root) and returns to the menu.
+- **Main menu = a Win98 desktop:** a teal desktop with a background camera slowly orbiting a small diorama of props (or a plain teal desktop),
+  a big "Cmod 98" logo, and double-clickable desktop icons with labels: **Start New Game**, **Find Servers**, **Options**, **GitHub / Logs**,
+  **Shut Down**. The taskbar and Start menu also work here. Version text and "Update available" balloon tip at the bottom right (from C-GITHUB).
+- **Start New Game** dialog: map dropdown (cm_flatgrass98), server name, max players (2–16), password (optional), "Friends only"
+  checkbox, and Single player / Host P2P radio. Host P2P creates a lobby via `LobbyService` and loads the map.
+- **Server Browser** window (Win98 ListView): tabs **Friends | Internet | LAN | Favorites | History**; sortable columns: 🔒, Name, Map,
+  Players, Ping, Host; double-click or **Connect** to join; **Refresh** with a Win98 progress bar; a filter row (has players, not full, no
+  password); a password prompt for locked lobbies; right-click → Add to Favorites; "Join by code" textbox (lobby ID / Steam ID).
+  Favorites and history are saved to PlayerPrefs.
+- **Networking seam (no real networking yet, that's B-NET):** `ILobbyProvider { RequestList(tab, callback); CreateLobby(settings, cb);
+  Join(lobbyId, password, cb); Leave(); }` and `LobbyInfo { Id, Name, Map, Players, MaxPlayers, Ping, HostName, Locked, FriendsOnly }`.
+  Ship a `LocalLobbyProvider` (shows your own hosted lobby; LAN tab does a UDP broadcast discovery on port 27015 so two copies on one network
+  find each other in the list; joining shows "Networking arrives with B-NET" for now). B-NET later adds `SteamLobbyProvider`
+  (Steam matchmaking lobbies, friends' lobbies via Steam friends) and wires the actual connect.
+
 ### C-EDITOR: editor setup menu and README
 **Status:** doing
 **Owns:** `Assets/Cmod/Editor/*.cs`, `README.md`
@@ -201,7 +222,7 @@ only touch the files the card owns, and update **Status** when they finish.
 ---
 
 ## Backlog (from PLAN.md, not started)
-- B-NET: FishNet + Steam P2P multiplayer
+- B-NET: FishNet + Steam P2P multiplayer (implements `SteamLobbyProvider` for C-MENU, plugs remote messages into `ChatService`)
 - B-LUA: MoonSharp Lua runtime with the GMod-like API
 - B-MODS: live mod loading, `require("owner/repo/mod")`, host permissions
 - B-CPAK: compressed mod bundles, chunk cache, P2P chunk sharing
