@@ -154,6 +154,21 @@ only touch the files the card owns, and update **Status** when they finish.
 - `docs/GITHUB.md`: how to make the token, how to cut a release, how Claude reads logs (issues labelled `cmod-log`).
 - `Services_Init` (log file + uploader; it runs before the UI exists, so register windows and start menu items in `Updater_Init`).
 
+### C-SOUND: UI and toolgun sounds
+**Status:** todo (queued: starts after the current build finishes, because it hooks into C-UI and C-WEAPONS files) — *requested by user*
+**Owns:** `Audio/*.cs`, plus small call-site edits in UI and weapon files
+- `Sfx` service: every sound is synthesized at startup with `AudioClip.Create` (no audio assets) and played from a small pool of 2D AudioSources,
+  plus `Sfx.PlayAt(name, pos)` for 3D sounds. Volume follows the `volume` convar, plus `sfx_ui_volume` (archive). Original sounds only:
+  retro 90s-PC-flavoured, but no copies of real Windows sound files.
+- UI sounds: button click (short tick), window open (soft rising chirp), window close/minimize (falling chirp), start menu open,
+  menu hover (very quiet tick, rate-limited), message box (Info "ding"-style chime, Warning, Error "chord"-style buzz, Question),
+  checkbox/radio toggle, tab switch, a startup jingle when the game boots (short and original), and a shutdown jingle on Shut Down.
+- Toolgun: fire "zap" (bright click + short noise burst), tool success, tool denied/fail buzz, mode-switch beep, weld "clink", rope "twang",
+  remover "poof", balloon "pop" when removed.
+- Physgun: a looping hum while holding (pitch follows distance or speed), pickup, drop and freeze "clunk".
+- Pistol and wrench: replace any ad-hoc procedural sounds with the shared `Sfx` clips (gunshot, reload, swing, hit).
+- Props: a soft physics impact sound on collisions above a speed threshold, chosen by material preset, rate-limited.
+
 ### C-EDITOR: editor setup menu and README
 **Status:** doing
 **Owns:** `Assets/Cmod/Editor/*.cs`, `README.md`
