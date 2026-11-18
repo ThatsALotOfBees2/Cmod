@@ -86,7 +86,7 @@ only touch the files the card owns, and update **Status** when they finish.
   E + mouse rotates (`BlocksMouseLook`), and Shift snaps to 45°. RMB while holding freezes it and lets go. R unfreezes the entity under
   the crosshair and everything welded to it. Grabbing a frozen prop unfreezes it. A curved beam LineRenderer (cyan, unlit)
   runs from the muzzle to the grab point, plus a glow sprite at the end. Simple procedural view model (box primitives, cyan glow) on the camera.
-- Toolgun: LMB/RMB/R call `ToolRegistry.Active` with an aim trace (`Hooks.CanTool` must allow it), and a tracer flash plus click
+- Toolgun (**no view model needed**, user said not to worry about it; if a simple one already exists, leave it and spend no more time on it): LMB/RMB/R call `ToolRegistry.Active` with an aim trace (`Hooks.CanTool` must allow it), and a tracer flash plus click
   sound (procedural AudioClip) on success. HUD: top-left Win98 window-styled panel with the tool name, description and instructions.
 - Tool modes (register all of them): **Remover** (LMB remove, RMB remove plus everything constrained to it),
   **Color** (settings: RGB sliders and swatches; LMB apply, RMB copy), **Weld** (two clicks → FixedJoint, R clears constraints, undo),
