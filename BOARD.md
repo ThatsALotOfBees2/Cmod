@@ -30,7 +30,7 @@ only touch the files the card owns, and update **Status** when they finish.
 | Esc (close the focused window, otherwise toggle the start menu) | C-UI |
 
 ## Weapon IDs
-`weapon_physgun` (slot 0), `weapon_toolgun` (slot 1), `weapon_pistol` (slot 2), `weapon_wrench` (slot 3, melee). The default loadout is all four.
+`weapon_physgun` (slot 0, **ON HOLD**, see C-PHYSGUN-HOLD), `weapon_toolgun` (slot 1), `weapon_pistol` (slot 2), `weapon_wrench` (slot 3, melee). The default loadout is toolgun, pistol and wrench, with the toolgun selected.
 
 ---
 
@@ -165,9 +165,30 @@ only touch the files the card owns, and update **Status** when they finish.
   checkbox/radio toggle, tab switch, a startup jingle when the game boots (short and original), and a shutdown jingle on Shut Down.
 - Toolgun: fire "zap" (bright click + short noise burst), tool success, tool denied/fail buzz, mode-switch beep, weld "clink", rope "twang",
   remover "poof", balloon "pop" when removed.
-- Physgun: a looping hum while holding (pitch follows distance or speed), pickup, drop and freeze "clunk".
+- (Physgun sounds: on hold with the physgun.)
+- Chat: a short message blip.
 - Pistol and wrench: replace any ad-hoc procedural sounds with the shared `Sfx` clips (gunshot, reload, swing, hit).
 - Props: a soft physics impact sound on collisions above a speed threshold, chosen by material preset, rate-limited.
+
+### C-CHAT: chat box
+**Status:** todo (queued after the current build) — *requested by user*
+**Owns:** `UI/Apps/ChatBox.cs`, `Game/ChatService.cs`; adds keybinds Y (all chat) and Enter-to-send
+- `ChatService` (static): `Send(string text)`, `Receive(string sender, string text, Color nameColor)`, `event MessageReceived`,
+  history (last 100). Today `Send` loops back locally. It is the seam B-NET plugs into later: networking just calls `Receive` for remote
+  messages and forwards `Send`. It runs `Hooks.ChatMessage` (returning false blocks the message). Messages starting with `/` or `!` run as a
+  console command via `ConCommands.Execute` (for example `/noclip`).
+- Chat box (bottom-left, above the HUD health panel, not a taskbar window): Win98 styled. While closed, the last ~8 messages show over the game
+  on a translucent sunken panel and fade out after 10 s. Y opens the input (a Win98 TextField with a "Say:" label and a Send button, full history scrollable,
+  cursor free); Enter sends, Esc closes without sending; ↑/↓ recall sent lines; 128-char limit. Player names are bold and colored, system messages gray
+  ("player joined" etc.). Join/leave and server messages go through `ChatService.System(text)`.
+- Esc while chat is open closes the chat only (it must not also toggle the Start menu). Gameplay input stays blocked while typing.
+- Plays the C-SOUND chat blip when C-SOUND exists (`Sfx.Play("chat")`).
+
+### C-PHYSGUN-HOLD: physgun on hold
+**Status:** todo (apply after the current build) — *requested by user: "don't do the physgun for now"*
+- Don't register `weapon_physgun`, and remove it from the default loadout (spawn with the toolgun selected). Move its code to
+  `Weapons/_OnHold/Physgun.cs.txt` so it doesn't compile but isn't lost. Remove its keybinds and HUD references, and drop the physgun bullets from C-SOUND.
+- Without the physgun, players can still spawn props (spawn menu), weld, rope and remove them (toolgun), and push them by walking into them.
 
 ### C-EDITOR: editor setup menu and README
 **Status:** doing
