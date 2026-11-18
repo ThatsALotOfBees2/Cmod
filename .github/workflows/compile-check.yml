@@ -1,0 +1,41 @@
+# Compile-checks every runtime C# script under Assets/ against the Unity reference assemblies
+# (Tools/check-compile.sh). Fast (no Unity license needed), runs on every push and pull request.
+name: Compile check
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: compile-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: C# compile check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # The script downloads the Unity reference DLLs from NuGet into Tools/CompileCheck/.unityref.
+      - name: Cache Unity reference assemblies
+        uses: actions/cache@v4
+        with:
+          path: Tools/CompileCheck/.unityref
+          key: unityref-2021.3.33-v1
+
+      - name: Compile
+        run: |
+          chmod +x Tools/check-compile.sh
+          Tools/check-compile.sh
