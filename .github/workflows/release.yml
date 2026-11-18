@@ -1,0 +1,103 @@
+# Builds Cmod for Windows and Linux when a version tag (v1.2.3) is pushed, zips each build as
+# Cmod-Windows.zip / Cmod-Linux.zip and attaches them to the GitHub Release for that tag.
+# The game's auto-updater (Services/AutoUpdater.cs) downloads these zips: keep the names containing
+# "Windows" / "Linux" and ending in .zip.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   UNITY_LICENSE   contents of your Unity .ulf license file (Personal licenses work)
+#   UNITY_EMAIL     Unity account email
+#   UNITY_PASSWORD  Unity account password
+# See docs/GITHUB.md and https://game.ci/docs/github/activation
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - targetPlatform: StandaloneWindows64
+            zipName: Cmod-Windows.zip
+          - targetPlatform: StandaloneLinux64
+            zipName: Cmod-Linux.zip
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # versioning: Tag needs the tags and history
+          lfs: true
+
+      # Unity build images are large; make room on the runner.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: |
+            Library-${{ matrix.targetPlatform }}-
+
+      - name: Build with Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: Cmod
+          versioning: Tag
+
+      # Zip the build folder's CONTENTS (Cmod.exe / Cmod.x86_64, Cmod_Data, ...) at the zip root.
+      - name: Zip build
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" build || true
+          cd "build/${{ matrix.targetPlatform }}"
+          rm -rf *_BurstDebugInformation_DoNotShip *_BackUpThisFolder_ButDontShipItWithYourGame
+          zip -r -9 -q "$GITHUB_WORKSPACE/${{ matrix.zipName }}" .
+          ls -lh "$GITHUB_WORKSPACE/${{ matrix.zipName }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.zipName }}
+          path: ${{ matrix.zipName }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Attach zips to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Cmod-Windows.zip
+            dist/Cmod-Linux.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

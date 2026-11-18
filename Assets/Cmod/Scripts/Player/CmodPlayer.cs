@@ -62,6 +62,7 @@ namespace Cmod
         float _viewPunchPitch;          // degrees, decays to 0 (damage / landing kick)
         float _viewPunchRoll;
         bool _wasNoclip;
+        bool _snapping;                 // true during the SnapToGround Move (no second weight impulse)
         float _sprintBlend;             // 0..1, eases the sprint FOV kick
 
         /// <summary>True between death and respawn.</summary>
@@ -78,7 +79,7 @@ namespace Cmod
         public float RespawnDelaySeconds => RespawnDelay;
 
         /// <summary>The weapons the player starts with (see BOARD.md, Weapon IDs).</summary>
-        public static readonly string[] DefaultLoadout = { "weapon_physgun", "weapon_toolgun", "weapon_pistol", "weapon_wrench" };
+        public static readonly string[] DefaultLoadout = { "weapon_toolgun", "weapon_pistol", "weapon_wrench" };
 
         static readonly RaycastHit[] s_hitBuffer = new RaycastHit[64];
         static readonly Collider[] s_overlapBuffer = new Collider[32];
@@ -141,8 +142,8 @@ namespace Cmod
         internal void GiveDefaultLoadout()
         {
             foreach (var id in DefaultLoadout) Give(id);
-            var physgun = FindWeapon("weapon_physgun");
-            SelectWeapon(physgun ?? (Weapons.Count > 0 ? Weapons[0] : null));
+            var toolgun = FindWeapon("weapon_toolgun");
+            SelectWeapon(toolgun ?? (Weapons.Count > 0 ? Weapons[0] : null));
         }
 
         void OnDestroy()
@@ -463,6 +464,7 @@ namespace Cmod
             bool wasGrounded = _grounded;
 
             var flags = _cc.Move(new Vector3(h.x, vy, h.z) * dt);
+            var moveVel = _cc.velocity;   // the main move's velocity, before SnapToGround overwrites it
 
             // Walking down stairs and slopes: snap back to the ground instead of floating off each step.
             if (wasGrounded && !jumped && !_cc.isGrounded) SnapToGround();
@@ -472,8 +474,7 @@ namespace Cmod
             if ((flags & CollisionFlags.Sides) != 0)
             {
                 // Lose the velocity that went into the wall, so we slide instead of sticking.
-                var actual = _cc.velocity;
-                h = new Vector3(actual.x, 0f, actual.z);
+                h = new Vector3(moveVel.x, 0f, moveVel.z);
             }
 
             if (_grounded)
@@ -494,7 +495,9 @@ namespace Cmod
                     Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) &&
                 Vector3.Angle(hit.normal, Vector3.up) <= _cc.slopeLimit)
             {
-                _cc.Move(Vector3.down * (maxDrop + 0.05f));
+                _snapping = true;
+                try { _cc.Move(Vector3.down * (maxDrop + 0.05f)); }
+                finally { _snapping = false; }
             }
         }
 
@@ -680,7 +683,7 @@ namespace Cmod
         {
             var list = SortedWeapons();
             if (list.Count == 0) return;
-            int idx = ActiveWeapon != null ? list.IndexOf(ActiveWeapon) : -1;
+            int idx = ActiveWeapon != null ? _sortedWeapons.IndexOf(ActiveWeapon) : -1;   // list is _sortedWeapons
             idx = idx < 0 ? (dir > 0 ? 0 : list.Count - 1) : (idx + dir + list.Count) % list.Count;
             SelectWeapon(list[idx]);
         }
@@ -706,15 +709,21 @@ namespace Cmod
             var rb = hit.collider != null ? hit.collider.attachedRigidbody : null;
             if (rb == null || rb.isKinematic) return;
 
-            if (hit.moveDirection.y < -0.5f)
+            // Classify by surface normal (not move direction: a grounded walk only moves slightly downwards).
+            bool ground = hit.normal.y > 0.7f || hit.point.y < transform.position.y + Radius * 0.5f;
+            if (ground)
             {
                 // Standing on it: press down with the player's weight (per frame impulse = m*g*dt).
+                if (_snapping) return;   // already applied by this frame's main Move
                 float dt = Time.deltaTime;
                 rb.AddForceAtPosition(Physics.gravity * (PlayerMassKg * dt), hit.point, ForceMode.Impulse);
                 return;
             }
 
-            // Walking into it: push it horizontally towards our own speed. Heavy things resist.
+            // Ceilings / overhangs: no push.
+            if (hit.normal.y < -0.7f) return;
+
+            // Walking into it (side contact): push it horizontally towards our own speed. Heavy things resist.
             var pushDir = new Vector3(hit.moveDirection.x, 0f, hit.moveDirection.z);
             if (pushDir.sqrMagnitude < 0.0001f) return;
             pushDir.Normalize();
