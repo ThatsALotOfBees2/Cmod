@@ -1,0 +1,18 @@
+<!-- Compiles Assets/ runtime scripts against Unity reference DLLs (no Unity editor needed).
+     Run: Tools/check-compile.sh -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputType>Library</OutputType>
+    <NoWarn>CS0649;CS0414;CS0169</NoWarn>
+    <DefineConstants>UNITY_2021_3_OR_NEWER;UNITY_STANDALONE;ENABLE_LEGACY_INPUT_MANAGER</DefineConstants>
+    <UnityRefDir>$(MSBuildThisFileDirectory).unityref/lib</UnityRefDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/**/*.cs" Exclude="../../Assets/**/Editor/**/*.cs" />
+    <Reference Include="$(UnityRefDir)/*.dll" Private="false" />
+  </ItemGroup>
+</Project>
